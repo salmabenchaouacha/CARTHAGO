@@ -142,4 +142,3 @@ const AIPlannerPage = () => {
 };
 
 export default AIPlannerPage;
- // Note: This code is a React component for an AI-powered travel itinerary planner. It allows users to input their preferences such as trip duration, budget, travel type, interests, and desired regions. Upon submission, it generates a personalized itinerary with daily activities, weather information, accommodation details, and estimated costs. The component uses Framer Motion for animations and Lucide icons for visual elements.
