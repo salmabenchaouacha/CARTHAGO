@@ -27,7 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 # Application definition
 
 INSTALLED_APPS = [
@@ -91,7 +94,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "carthago_db",
         "USER": "root",
-        "PASSWORD": "",
+        "PASSWORD": "sarra",
         "HOST": "127.0.0.1",
         "PORT": "3306",
         "OPTIONS": {
@@ -169,3 +172,4 @@ CSRF_TRUSTED_ORIGINS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+CORS_ALLOW_ALL_ORIGINS = True

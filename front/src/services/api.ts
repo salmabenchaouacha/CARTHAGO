@@ -1,5 +1,5 @@
 import { regions, partners, products, reviews, type Region, type Partner, type Product, type Review } from '@/data/mockData';
-
+import axios from "axios"; 
 // Simulated API delay
 const delay = (ms: number = 300) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -46,39 +46,25 @@ export const api = {
     return reviews.filter(r => r.targetId === targetId);
   },
 
-  // AI Trip Planner (simulated)
+  //AI Trip Planner
   async generateTrip(params: {
-    duration: number;
-    budget: string;
-    travelType: string;
-    interests: string[];
-    regions: string[];
-  }) {
-    await delay(1000);
-    const days = [];
-    const allRegions = params.regions.length > 0 ? params.regions : ['tunis', 'sousse', 'djerba'];
-    
-    for (let i = 0; i < params.duration; i++) {
-      const regionId = allRegions[i % allRegions.length];
-      const region = regions.find(r => r.id === regionId);
-      const regionPartners = partners.filter(p => p.region === regionId);
-      const restaurant = regionPartners.find(p => p.type === 'restaurant');
-      const accommodation = regionPartners.find(p => p.type === 'guesthouse');
-      
-      days.push({
-        day: i + 1,
-        region: region?.name || 'Tunis',
-        weather: { temp: Math.floor(Math.random() * 10) + 22, condition: ['Ensoleillé', 'Partiellement nuageux', 'Clair'][Math.floor(Math.random() * 3)] },
-        activities: [
-          { time: '09:00', title: region?.activities[0] || 'Visite culturelle', description: 'Découverte guidée des sites principaux' },
-          { time: '12:30', title: `Déjeuner - ${restaurant?.name || 'Restaurant local'}`, description: 'Cuisine tunisienne authentique' },
-          { time: '15:00', title: region?.activities[1] || 'Exploration libre', description: 'Temps libre pour explorer' },
-          { time: '19:00', title: 'Dîner et soirée', description: 'Soirée détente et gastronomie locale' },
-        ],
-        accommodation: accommodation?.name || 'Hôtel local',
-        estimatedCost: params.budget === 'economique' ? 80 : params.budget === 'moyen' ? 150 : 300,
-      });
+  duration: number;
+  budget: string;
+  travelType: string;
+  interests: string[];
+  regions: string[];
+}) {
+  const res = await axios.post(
+    "http://localhost:8000/api/ai/generate-plan/",
+    {
+      duration: params.duration,
+      travel_type: params.travelType,
+      interests: params.interests,
+      regions: params.regions,
+      budget: params.budget,
     }
-    return { days, totalCost: days.reduce((s, d) => s + d.estimatedCost, 0) };
-  },
+  );
+
+  return res.data.plan; // 👈 VERY IMPORTANT
+}
 };
