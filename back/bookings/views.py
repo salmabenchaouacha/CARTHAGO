@@ -3,11 +3,13 @@ from django.http import JsonResponse
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.response import Response
+from rest_framework import status
 from catalog.models import Service
 from .models import Booking
 
 from accounts.permissions import IsAuthenticatedUser
+from accounts.permissions import IsAdminRole
 
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
@@ -85,3 +87,60 @@ def booking_detail(request, pk):
         },
     }
     return JsonResponse(data)
+
+@api_view(["GET"])
+@permission_classes([IsAdminRole])
+def admin_bookings_list(request):
+    data = list(
+        Booking.objects.select_related("user", "service").values(
+            "id",
+            "booking_date",
+            "guests",
+            "status",
+            "created_at",
+            "user__id",
+            "user__username",
+            "user__full_name",
+            "service__id",
+            "service__title",
+        )
+    )
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(["PATCH"])
+@permission_classes([IsAdminRole])
+def admin_booking_update_status(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+
+    new_status = request.data.get("status")
+
+    allowed_statuses = ["pending", "confirmed", "cancelled"]
+
+    if not new_status:
+        return Response(
+            {"error": "Le champ status est obligatoire."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if new_status not in allowed_statuses:
+        return Response(
+            {
+                "error": f"Statut invalide. Valeurs autorisées : {', '.join(allowed_statuses)}."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    booking.status = new_status
+    booking.save(update_fields=["status"])
+
+    return Response(
+        {
+            "message": "Statut de la réservation mis à jour avec succès.",
+            "booking": {
+                "id": booking.id,
+                "status": booking.status,
+                "booking_date": str(booking.booking_date),
+            },
+        },
+        status=status.HTTP_200_OK,
+    )

@@ -1,53 +1,150 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { type User, mockUsers } from '@/data/mockData';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import api from "@/services/api";
 
-interface AuthContextType {
+type UserRole = "user" | "partner" | "admin";
+
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  role: UserRole;
+  is_staff: boolean;
+  is_superuser: boolean;
+};
+
+type RegisterPayload = {
+  username: string;
+  password: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  role: "user" | "partner";
+  business_name?: string;
+  activity_type?: string;
+  description?: string;
+  address?: string;
+  region_id?: number;
+  latitude?: number;
+  longitude?: number;
+};
+
+type AuthContextType = {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string, role: 'user' | 'partner') => Promise<boolean>;
-  logout: () => void;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
+  register: (payload: RegisterPayload) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  refreshMe: () => Promise<void>;
   isAuthenticated: boolean;
-}
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('explore_tunisia_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const refreshMe = async () => {
+    try {
+      const response = await api.get("/auth/me/");
+      setUser(response.data.user);
+    } catch (error) {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      setUser(null);
+    }
+  };
+
+  const login = async (username: string, password: string) => {
+    try {
+      const response = await api.post("/auth/login/", {
+        username,
+        password,
+      });
+
+      localStorage.setItem("access_token", response.data.access);
+      localStorage.setItem("refresh_token", response.data.refresh);
+
+      setUser(response.data.user);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const register = async (payload: RegisterPayload) => {
+    try {
+      const response = await api.post("/auth/register/", payload);
+
+      localStorage.setItem("access_token", response.data.access);
+      localStorage.setItem("refresh_token", response.data.refresh);
+
+      setUser(response.data.user);
+      return { success: true };
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.detail ||
+        "Erreur lors de l'inscription.";
+      return { success: false, error: message };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const refresh = localStorage.getItem("refresh_token");
+
+      if (refresh) {
+        await api.post("/auth/logout/", { refresh });
+      }
+    } catch (error) {
+      console.error("Erreur logout", error);
+    } finally {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
-    if (user) localStorage.setItem('explore_tunisia_user', JSON.stringify(user));
-    else localStorage.removeItem('explore_tunisia_user');
-  }, [user]);
+    const initAuth = async () => {
+      const token = localStorage.getItem("access_token");
 
-  const login = async (email: string, _password: string) => {
-    const found = mockUsers.find(u => u.email === email);
-    if (found) { setUser(found); return true; }
-    // Simulate: any email works as user
-    const newUser: User = { id: `u_${Date.now()}`, name: email.split('@')[0], email, role: 'user' };
-    setUser(newUser);
-    return true;
-  };
+      if (token) {
+        await refreshMe();
+      }
 
-  const register = async (name: string, email: string, _password: string, role: 'user' | 'partner') => {
-    const newUser: User = { id: `u_${Date.now()}`, name, email, role };
-    setUser(newUser);
-    return true;
-  };
+      setLoading(false);
+    };
 
-  const logout = () => setUser(null);
+    initAuth();
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        refreshMe,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be inside AuthProvider');
-  return ctx;
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+
+  return context;
 };

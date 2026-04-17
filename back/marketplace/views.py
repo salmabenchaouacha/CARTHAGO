@@ -8,7 +8,9 @@ from accounts.permissions import IsPartnerOrReadOnly
 from partners.models import PartnerProfile
 from locations.models import Region
 from .models import Product, ProductCategory
-
+from rest_framework.response import Response
+from rest_framework import status
+from accounts.permissions import IsAdminRole
 
 @api_view(["GET", "POST"])
 @permission_classes([IsPartnerOrReadOnly])
@@ -124,3 +126,82 @@ def product_detail(request, pk):
         },
     }
     return JsonResponse(data)
+
+def _to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if str(value).lower() in ["true", "1", "yes", "oui"]:
+        return True
+    if str(value).lower() in ["false", "0", "no", "non"]:
+        return False
+    return None
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminRole])
+def admin_products_list(request):
+    data = list(
+        Product.objects.select_related("partner", "category", "region").values(
+            "id",
+            "name",
+            "description",
+            "price",
+            "stock",
+            "is_active",
+            "created_at",
+            "partner__id",
+            "partner__business_name",
+            "category__id",
+            "category__name",
+            "region__id",
+            "region__name",
+        )
+    )
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAdminRole])
+def admin_product_toggle(request, pk):
+    product = get_object_or_404(
+        Product.objects.select_related("partner", "category", "region"),
+        pk=pk,
+    )
+
+    if "is_active" not in request.data:
+        return Response(
+            {"error": "Le champ is_active est obligatoire."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    is_active = _to_bool(request.data.get("is_active"))
+    if is_active is None:
+        return Response(
+            {"error": "is_active doit être true ou false."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    product.is_active = is_active
+    product.save(update_fields=["is_active"])
+
+    return Response(
+        {
+            "message": "Statut du produit mis à jour avec succès.",
+            "product": {
+                "id": product.id,
+                "name": product.name,
+                "is_active": product.is_active,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+@api_view(["DELETE"])
+@permission_classes([IsAdminRole])
+def admin_product_delete(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    product.delete()
+    return Response(
+        {"message": "Produit supprimé avec succès."},
+        status=status.HTTP_200_OK,
+    )    
+    

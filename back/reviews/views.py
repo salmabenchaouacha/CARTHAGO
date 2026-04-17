@@ -3,8 +3,11 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from accounts.permissions import IsAdminRole
 
 from catalog.models import Service
+from rest_framework.response import Response
+from rest_framework import status
 from marketplace.models import Product
 from .models import Review
 from accounts.permissions import IsAuthenticatedUser
@@ -110,3 +113,13 @@ def review_detail(request, pk):
         } if review.product else None,
     }
     return JsonResponse(data)
+
+@api_view(["DELETE"])
+@permission_classes([IsAdminRole])
+def admin_review_delete(request, pk):
+    review = get_object_or_404(Review, pk=pk)
+    review.delete()
+    return Response(
+        {"message": "Avis supprimé avec succès."},
+        status=status.HTTP_200_OK,
+    )

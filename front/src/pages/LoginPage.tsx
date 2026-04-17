@@ -4,19 +4,46 @@ import { MapPin, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, refreshMe, user } = useAuth();
   const navigate = useNavigate();
+
+  const handleRedirectByRole = (role: string) => {
+    if (role === 'admin') navigate('/admin');
+    else if (role === 'partner') navigate('/partenaire');
+    else navigate('/utilisateur');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await login(email, password);
-    if (success) navigate('/');
-    else setError('Identifiants incorrects');
+
+    const success = await login(username, password);
+
+    if (!success) {
+      setError('Identifiants incorrects');
+      return;
+    }
+
+    await refreshMe();
+
+    const storedRole = localStorage.getItem("redirect_role");
+    if (storedRole) {
+      localStorage.removeItem("redirect_role");
+      handleRedirectByRole(storedRole);
+      return;
+    }
+
+    const accessToken = localStorage.getItem("access_token");
+    if (accessToken) {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      handleRedirectByRole(payload.role);
+    } else {
+      navigate('/');
+    }
   };
 
   return (
@@ -31,33 +58,47 @@ const LoginPage = () => {
           <p className="text-sm text-muted-foreground mt-1">Accédez à votre espace personnel</p>
         </div>
 
-        <div className="mb-4 p-3 rounded-lg bg-mediterranean-light text-primary text-xs">
-          <strong>Comptes de test :</strong><br />
-          Utilisateur : sophie@example.com<br />
-          Partenaire : dar@example.com<br />
-          Admin : admin@exploretunisia.com<br />
-          (mot de passe quelconque)
-        </div>
-
         {error && <p className="text-destructive text-sm mb-4">{error}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground">Email</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-lg border bg-background text-foreground text-sm" placeholder="votre@email.com" />
+            <label className="text-sm font-medium text-foreground">Nom d'utilisateur</label>
+            <input
+              type="text"
+              required
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              className="w-full mt-1 px-4 py-2.5 rounded-lg border bg-background text-foreground text-sm"
+              placeholder="Votre username"
+            />
           </div>
+
           <div>
             <label className="text-sm font-medium text-foreground">Mot de passe</label>
             <div className="relative mt-1">
-              <input type={showPw ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border bg-background text-foreground text-sm pr-10" placeholder="••••••••" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <input
+                type={showPw ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border bg-background text-foreground text-sm pr-10"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
+
           <button type="submit" className="w-full py-3 rounded-xl gradient-mediterranean text-primary-foreground font-semibold">
             Se connecter
           </button>
         </form>
+
         <div className="text-center mt-6 text-sm text-muted-foreground">
           Pas encore de compte ?{' '}
           <Link to="/inscription" className="text-primary hover:underline">Inscription</Link>
