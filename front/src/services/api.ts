@@ -66,5 +66,20 @@ export const api = {
   );
 
   return res.data.plan; // 👈 VERY IMPORTANT
+},
+async chatWithPlan(params: {
+  plan: any;
+  message: string;
+  history: { role: string; content: string }[];
+}) {
+  const res = await axios.post(
+    "http://localhost:8000/api/ai/chat-plan/",
+    {
+      plan: params.plan,
+      message: params.message,
+      history: params.history,
+    }
+  );
+  return res.data; // { reply, updatedPlan }
 }
 };

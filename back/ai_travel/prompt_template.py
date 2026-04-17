@@ -39,3 +39,15 @@ Use exactly this structure:
   "totalCost": 500
 }}
 """
+def build_chat_prompt(plan, message):
+    import json
+    return f"""
+You are a helpful travel assistant. The user has this travel plan for Tunisia:
+
+{json.dumps(plan, ensure_ascii=False, indent=2)}
+
+The user asks: {message}
+
+Answer helpfully. If they want to modify the plan, return the FULL updated plan JSON wrapped in <plan>...</plan> tags.
+If they just have a question, answer in plain text with no JSON.
+"""
