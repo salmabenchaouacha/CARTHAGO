@@ -41,13 +41,73 @@ Use exactly this structure:
 """
 def build_chat_prompt(plan, message):
     import json
-    return f"""
-You are a helpful travel assistant. The user has this travel plan for Tunisia:
 
+    return f"""
+You are a TRAVEL ITINERARY ENGINE.
+
+CURRENT PLAN:
 {json.dumps(plan, ensure_ascii=False, indent=2)}
 
-The user asks: {message}
+USER REQUEST:
+{message}
 
-Answer helpfully. If they want to modify the plan, return the FULL updated plan JSON wrapped in <plan>...</plan> tags.
-If they just have a question, answer in plain text with no JSON.
+You MUST return ONLY JSON.
+
+Rules:
+
+1) If user modifies a day → you MUST regenerate the FULL day object
+(not only one field)
+
+2) If user adds a day → create FULL realistic day
+
+3) If user changes budget → you MUST recalculate:
+- estimatedCost of affected day
+- totalCost of entire plan
+
+---
+
+Return format:
+
+{{
+  "action": "update_day",
+  "day": 4,
+  "new_day": {{
+    "day": 4,
+    "region": "Tunis",
+    "weather": {{
+      "temp": 26,
+      "condition": "Ensoleillé"
+    }},
+    "activities": [
+      {{
+        "time": "09:00",
+        "title": "...",
+        "description": "..."
+      }}
+    ],
+    "accommodation": "...",
+    "estimatedCost": 180
+  }},
+  "new_total_cost": 720
+}}
+
+OR
+
+{{
+  "action": "add_day",
+  "new_day": {{ ...full object... }},
+  "new_total_cost": 900
+}}
+
+OR
+
+{{
+  "action": "message",
+  "reply": "text"
+}}
+
+IMPORTANT:
+- Always return FULL structured day
+- Always recompute cost
+- No partial edits
 """
