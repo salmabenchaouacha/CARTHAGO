@@ -6,7 +6,7 @@ const PartnerDashboard = () => {
   const { user } = useAuth();
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold mb-6">Espace Partenaire — {user?.name}</h1>
+      <h1 className="font-display text-2xl font-bold mb-6">Espace Partenaire — {user?.full_name}</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="p-6 rounded-xl bg-card border"><div className="inline-flex p-3 rounded-lg bg-mediterranean-light mb-3"><ShoppingBag className="h-5 w-5 text-primary" /></div><p className="text-2xl font-bold">12</p><p className="text-sm text-muted-foreground">Produits</p></div>
         <div className="p-6 rounded-xl bg-card border"><div className="inline-flex p-3 rounded-lg bg-secondary mb-3"><Calendar className="h-5 w-5 text-accent" /></div><p className="text-2xl font-bold">8</p><p className="text-sm text-muted-foreground">Réservations</p></div>
@@ -31,7 +31,7 @@ export const PartnerProfile = () => {
     <div className="max-w-xl">
       <h1 className="font-display text-2xl font-bold mb-6">Mon profil partenaire</h1>
       <div className="p-6 rounded-xl bg-card border space-y-4">
-        <div><label className="text-sm text-muted-foreground">Nom</label><p className="font-medium">{user?.name}</p></div>
+        <div><label className="text-sm text-muted-foreground">Nom</label><p className="font-medium">{user?.full_name}</p></div>
         <div><label className="text-sm text-muted-foreground">Email</label><p className="font-medium">{user?.email}</p></div>
         <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Modifier</button>
       </div>

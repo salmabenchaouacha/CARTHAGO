@@ -22,6 +22,14 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import NotFound from "@/pages/NotFound";
 
+
+import UserDashboard, { UserProfile, UserFavorites, UserReservations, UserOrders } from "@/pages/dashboards/UserDashboard";
+import PartnerDashboard, { PartnerProfile, PartnerServices, PartnerProducts } from "@/pages/dashboards/PartnerDashboard";
+import AdminDashboard, { AdminUsers, AdminPartners, AdminProducts } from "@/pages/dashboards/AdminDashboard";
+
+
+import { UserDashboardLayout, PartnerDashboardLayout, AdminDashboardLayout } from "@/layouts/DashboardLayout";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -45,6 +53,32 @@ const App = () => {
                 <Route path="/marketplace/:id" element={<ProductDetailPage />} />
                 <Route path="/panier" element={<CartPage />} />
                 <Route path="/carte" element={<MapPage />} />
+              </Route>
+
+              
+               {/* User dashboard */}
+              <Route element={<UserDashboardLayout />}>
+                <Route path="/utilisateur" element={<UserDashboard />} />
+                <Route path="/utilisateur/profil" element={<UserProfile />} />
+                <Route path="/utilisateur/favoris" element={<UserFavorites />} />
+                <Route path="/utilisateur/reservations" element={<UserReservations />} />
+                <Route path="/utilisateur/commandes" element={<UserOrders />} />
+              </Route>
+
+              {/* Partner dashboard */}
+              <Route element={<PartnerDashboardLayout />}>
+                <Route path="/partenaire" element={<PartnerDashboard />} />
+                <Route path="/partenaire/profil" element={<PartnerProfile />} />
+                <Route path="/partenaire/services" element={<PartnerServices />} />
+                <Route path="/partenaire/produits" element={<PartnerProducts />} />
+              </Route>
+
+              {/* Admin dashboard */}
+              <Route element={<AdminDashboardLayout />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/utilisateurs" element={<AdminUsers />} />
+                <Route path="/admin/partenaires" element={<AdminPartners />} />
+                <Route path="/admin/produits" element={<AdminProducts />} />
               </Route>
 
               <Route path="/connexion" element={<LoginPage />} />

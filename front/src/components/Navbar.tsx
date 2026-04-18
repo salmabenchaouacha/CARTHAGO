@@ -70,7 +70,7 @@ const Navbar = () => {
             <div className="hidden md:flex items-center gap-2">
               <Link to={getDashboardLink()} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
                 <User className="h-4 w-4" />
-                {user?.name}
+                {user?.full_name}
               </Link>
               <button onClick={logout} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Déconnexion

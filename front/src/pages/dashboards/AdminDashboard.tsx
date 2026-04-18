@@ -2,7 +2,7 @@ import React from 'react';
 import { Users, Handshake, ShoppingBag, DollarSign, TrendingUp, BarChart3 } from 'lucide-react';
 
 const AdminDashboard = () => (
-  <div>
+  <div className="container mx-auto px-4 py-8">
     <h1 className="font-display text-2xl font-bold mb-6">Administration</h1>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       <div className="p-6 rounded-xl bg-card border"><div className="inline-flex p-3 rounded-lg bg-mediterranean-light mb-3"><Users className="h-5 w-5 text-primary" /></div><p className="text-2xl font-bold">1,248</p><p className="text-sm text-muted-foreground">Utilisateurs</p></div>

@@ -49,9 +49,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             missing = [field for field in required_fields if not attrs.get(field)]
             if missing:
                 raise serializers.ValidationError(
-                    {
-                        "error": f"Pour un partner, les champs suivants sont obligatoires : {', '.join(missing)}."
-                    }
+                    f"Pour un partenaire, les champs suivants sont obligatoires : {', '.join(missing)}."
                 )
 
         return attrs

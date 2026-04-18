@@ -53,7 +53,7 @@ const RegisterPage = ({ isPartner = false }: { isPartner?: boolean }) => {
       return;
     }
 
-    navigate(isPartner ? '/partenaire' : '/utilisateur');
+    navigate('/connexion');
   };
 
   return (

@@ -14,7 +14,7 @@ const UserDashboard = () => {
   const { user } = useAuth();
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold mb-6">Bonjour, {user?.name} 👋</h1>
+      <h1 className="font-display text-2xl font-bold mb-6">Bonjour, {user?.full_name} 👋</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatsCard icon={<Heart className="h-5 w-5 text-primary" />} label="Favoris" value="5" color="bg-mediterranean-light" />
         <StatsCard icon={<Calendar className="h-5 w-5 text-accent" />} label="Réservations" value="2" color="bg-secondary" />
@@ -40,7 +40,7 @@ export const UserProfile = () => {
     <div className="max-w-xl">
       <h1 className="font-display text-2xl font-bold mb-6">Mon profil</h1>
       <div className="p-6 rounded-xl bg-card border space-y-4">
-        <div><label className="text-sm text-muted-foreground">Nom</label><p className="font-medium">{user?.name}</p></div>
+        <div><label className="text-sm text-muted-foreground">Nom</label><p className="font-medium">{user?.full_name}</p></div>
         <div><label className="text-sm text-muted-foreground">Email</label><p className="font-medium">{user?.email}</p></div>
         <div><label className="text-sm text-muted-foreground">Rôle</label><p className="font-medium capitalize">{user?.role}</p></div>
         <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Modifier le profil</button>

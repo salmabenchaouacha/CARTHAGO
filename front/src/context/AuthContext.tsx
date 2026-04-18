@@ -84,10 +84,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(response.data.user);
       return { success: true };
     } catch (error: any) {
-      const message =
-        error?.response?.data?.error ||
-        error?.response?.data?.detail ||
-        "Erreur lors de l'inscription.";
+      let message = "Erreur lors de l'inscription.";
+      
+      // Try to extract error message from various DRF response formats
+      if (error?.response?.data) {
+        const data = error.response.data;
+        
+        // Check for direct error/detail properties
+        if (data.error) {
+          message = typeof data.error === 'string' ? data.error : data.error[0];
+        } else if (data.detail) {
+          message = typeof data.detail === 'string' ? data.detail : data.detail[0];
+        } else {
+          // Check for field validation errors
+          const errors = Object.entries(data).find(([_, value]: any) => {
+            return Array.isArray(value) && value.length > 0;
+          });
+          if (errors) {
+            const [field, messages] = errors;
+            const errorMsg = Array.isArray(messages) ? messages[0] : messages;
+            message = `${field}: ${errorMsg}`;
+          }
+        }
+      }
+      
       return { success: false, error: message };
     }
   };
