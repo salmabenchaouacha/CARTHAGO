@@ -21,6 +21,7 @@ import MapPage from "@/pages/MapPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "@/routes/ProtectedRoute";
 
 
 import UserDashboard, { UserProfile, UserFavorites, UserReservations, UserOrders } from "@/pages/dashboards/UserDashboard";
@@ -55,31 +56,44 @@ const App = () => {
                 <Route path="/carte" element={<MapPage />} />
               </Route>
 
+              // User dashboard — réservé aux users
+              <Route element={
+                <ProtectedRoute role="user">
+                  <UserDashboardLayout />
+                </ProtectedRoute>
+              }>
+              <Route path="/utilisateur" element={<UserDashboard />} />
+              <Route path="/utilisateur/profil" element={<UserProfile />} />
+              <Route path="/utilisateur/favoris" element={<UserFavorites />} />
+              <Route path="/utilisateur/reservations" element={<UserReservations />} />
+              <Route path="/utilisateur/commandes" element={<UserOrders />} />
+            </Route>
+
+            // Partner dashboard — réservé aux partners
+            <Route element={
+              <ProtectedRoute role="partner">
+                <PartnerDashboardLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="/partenaire" element={<PartnerDashboard />} />
+              <Route path="/partenaire/profil" element={<PartnerProfile />} />
+              <Route path="/partenaire/services" element={<PartnerServices />} />
+              <Route path="/partenaire/produits" element={<PartnerProducts />} />
+            </Route>
+
+            // Admin dashboard — réservé aux admins
+            <Route element={
+              <ProtectedRoute role="admin">
+                <AdminDashboardLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/utilisateurs" element={<AdminUsers />} />
+              <Route path="/admin/partenaires" element={<AdminPartners />} />
+              <Route path="/admin/produits" element={<AdminProducts />} />
+            </Route>
               
-               {/* User dashboard */}
-              <Route element={<UserDashboardLayout />}>
-                <Route path="/utilisateur" element={<UserDashboard />} />
-                <Route path="/utilisateur/profil" element={<UserProfile />} />
-                <Route path="/utilisateur/favoris" element={<UserFavorites />} />
-                <Route path="/utilisateur/reservations" element={<UserReservations />} />
-                <Route path="/utilisateur/commandes" element={<UserOrders />} />
-              </Route>
 
-              {/* Partner dashboard */}
-              <Route element={<PartnerDashboardLayout />}>
-                <Route path="/partenaire" element={<PartnerDashboard />} />
-                <Route path="/partenaire/profil" element={<PartnerProfile />} />
-                <Route path="/partenaire/services" element={<PartnerServices />} />
-                <Route path="/partenaire/produits" element={<PartnerProducts />} />
-              </Route>
-
-              {/* Admin dashboard */}
-              <Route element={<AdminDashboardLayout />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/utilisateurs" element={<AdminUsers />} />
-                <Route path="/admin/partenaires" element={<AdminPartners />} />
-                <Route path="/admin/produits" element={<AdminProducts />} />
-              </Route>
 
               <Route path="/connexion" element={<LoginPage />} />
               <Route path="/inscription" element={<RegisterPage />} />
