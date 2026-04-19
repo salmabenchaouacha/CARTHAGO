@@ -1,8 +1,25 @@
+// Format liste (GET /products/ avec .values())
+export type ProductList = {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  stock: number;
+  image: string | null;
+  is_active: boolean;
+  partner__business_name: string;
+  category__name: string;
+  category__slug: string;
+  region__name: string;
+  region__slug: string;
+};
+
+// Format détail (GET /products/:id/)
 export type Product = {
   id: number;
   name: string;
   description: string;
-  price: number;
+  price: string;
   stock: number;
   image: string | null;
   is_active: boolean;
@@ -11,6 +28,22 @@ export type Product = {
   region: { name: string; slug: string };
 };
 
+// Format liste (GET /partners/ avec .values())
+export type PartnerList = {
+  id: number;
+  business_name: string;
+  activity_type: string;
+  description: string;
+  address: string;
+  is_verified: boolean;
+  latitude: string | null;
+  longitude: string | null;
+  region__name: string;
+  region__slug: string;
+  user__full_name: string;
+};
+
+// Format détail (GET /partners/:id/)
 export type Partner = {
   id: number;
   business_name: string;
@@ -20,9 +53,8 @@ export type Partner = {
   is_verified: boolean;
   latitude: string | null;
   longitude: string | null;
-  user__full_name: string;
-  region__name: string;
-  region__slug: string;
+  user: { username: string; full_name: string };
+  region: { name: string; slug: string };
 };
 
 export type Region = {

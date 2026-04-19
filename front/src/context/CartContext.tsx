@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { type Product } from '@/types';
+import { type Product, type ProductList } from '@/types';
+
+type CartProduct = Product | ProductList;
 
 interface CartItem {
-  product: Product;
+  product: CartProduct;
   quantity: number;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product) => void;
+  addToCart: (product: CartProduct) => void;
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
@@ -32,7 +34,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('explore_tunisia_cart', JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: CartProduct) => {
     setItems(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) {
@@ -60,9 +62,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <CartContext.Provider
-      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount }}
-    >
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount }}>
       {children}
     </CartContext.Provider>
   );

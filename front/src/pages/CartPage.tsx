@@ -37,59 +37,42 @@ const CartPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
-            {items.map(({ product, quantity }) => (
-              <div key={product.id} className="flex gap-4 p-4 rounded-xl bg-card border">
+           {items.map(({ product, quantity }) => {
+  const partnerName = 'partner__business_name' in product
+    ? product.partner__business_name
+    : product.partner?.business_name;
 
-                {/* Image — image est une URL Django media ou null */}
-                {product.image ? (
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-24 h-24 rounded-lg object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                    Pas d'image
-                  </div>
-                )}
-
-                <div className="flex-1">
-                  <h3 className="font-medium text-foreground">{product.name}</h3>
-                  {/* sellerName remplacé par partner.business_name */}
-                  <p className="text-sm text-muted-foreground">
-                    {product.partner?.business_name}
-                  </p>
-                  <p className="text-accent font-bold mt-1">
-                    {Number(product.price).toFixed(2)} TND
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-end justify-between">
-                  <button
-                    onClick={() => removeFromCart(product.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateQuantity(product.id, quantity - 1)}
-                      className="p-1 rounded-md bg-muted hover:bg-border transition-colors"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="w-8 text-center font-medium">{quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(product.id, quantity + 1)}
-                      className="p-1 rounded-md bg-muted hover:bg-border transition-colors"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+  return (
+    <div key={product.id} className="flex gap-4 p-4 rounded-xl bg-card border">
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="w-24 h-24 rounded-lg object-cover" loading="lazy" />
+      ) : (
+        <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center text-2xl">🛍️</div>
+      )}
+      <div className="flex-1">
+        <h3 className="font-medium text-foreground">{product.name}</h3>
+        <p className="text-sm text-muted-foreground">{partnerName}</p>
+        <p className="text-accent font-bold mt-1">{Number(product.price).toFixed(2)} TND</p>
+      </div>
+      <div className="flex flex-col items-end justify-between">
+        <button onClick={() => removeFromCart(product.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+          <Trash2 className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => updateQuantity(product.id, quantity - 1)} className="p-1 rounded-md bg-muted hover:bg-border transition-colors">
+            <Minus className="h-4 w-4" />
+          </button>
+          <span className="w-8 text-center font-medium">{quantity}</span>
+          <button onClick={() => updateQuantity(product.id, quantity + 1)} className="p-1 rounded-md bg-muted hover:bg-border transition-colors">
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+})}  
+             
+              
           </div>
 
           <div className="p-6 rounded-xl bg-card border h-fit">
