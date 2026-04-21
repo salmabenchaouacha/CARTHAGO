@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, BadgeCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { type Region } from '@/data/mockData';
+import { type RegionList } from '@/types';
 import { type Partner, type PartnerList, type Product, type ProductList } from '@/types';
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -13,7 +13,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   experience: 'Expérience',
 };
 
-export const RegionCard = ({ region, index = 0 }: { region: Region; index?: number }) => (
+export const RegionCard = ({ region, index = 0 }: { region: RegionList; index?: number }) => (
   <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1, duration: 0.4 }} viewport={{ once: true }}>
     <Link to={`/regions/${region.id}`} className="group block rounded-xl overflow-hidden bg-card hover-lift border">
       <div className="relative h-52 overflow-hidden">

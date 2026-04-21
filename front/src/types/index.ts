@@ -57,10 +57,12 @@ export type Partner = {
   region: { name: string; slug: string };
 };
 
-export type Region = {
+export type RegionList = {
   id: number;
   name: string;
   slug: string;
-  description?: string;
-  image?: string;
+  description: string;
+  image: string | null;
+  specialties: string[];
+  activities: string[];
 };
