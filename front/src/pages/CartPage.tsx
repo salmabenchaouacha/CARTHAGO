@@ -1,10 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import CheckoutModal from '@/components/CheckoutModal';
+import PaymentModal from '@/components/PaymentModal';
+import { createOrder } from '@/services/orderService';
+type FlowStep = 'cart' | 'checkout' | 'payment';
 
 const CartPage = () => {
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
+  const [step, setStep] = useState<FlowStep>('cart');
+  const [shippingAddress, setShippingAddress] = useState('');
+
+  const handleProceedToPayment = (address: string) => {
+    setShippingAddress(address);
+    setStep('payment');
+  };
+
+  const handleConfirmPayment = async () => {
+    // Simulation : on attend 2s avant de créer la vraie commande
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    await createOrder({
+      shipping_address: shippingAddress,
+      items: items.map(({ product, quantity }) => ({
+        product_id: product.id,
+        quantity,
+      })),
+    });
+
+    clearCart();
+  };
+
+  const handleClosePayment = () => {
+    setStep('cart');
+    setShippingAddress('');
+  };
 
   if (items.length === 0) {
     return (
@@ -25,85 +56,125 @@ const CartPage = () => {
   }
 
   return (
-    <div className="py-12">
-      <div className="container mx-auto px-4">
-        <Link
-          to="/marketplace"
-          className="inline-flex items-center gap-1 text-muted-foreground text-sm mb-6 hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />Continuer les achats
-        </Link>
-        <h1 className="font-display text-3xl font-bold mb-8">Mon panier</h1>
+    <>
+      <div className="py-12">
+        <div className="container mx-auto px-4">
+          <Link
+            to="/marketplace"
+            className="inline-flex items-center gap-1 text-muted-foreground text-sm mb-6 hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />Continuer les achats
+          </Link>
+          <h1 className="font-display text-3xl font-bold mb-8">Mon panier</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-4">
-           {items.map(({ product, quantity }) => {
-  const partnerName = 'partner__business_name' in product
-    ? product.partner__business_name
-    : product.partner?.business_name;
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Items */}
+            <div className="lg:col-span-2 space-y-4">
+              {items.map(({ product, quantity }) => {
+                const partnerName =
+                  'partner__business_name' in product
+                    ? product.partner__business_name
+                    : product.partner?.business_name;
 
-  return (
-    <div key={product.id} className="flex gap-4 p-4 rounded-xl bg-card border">
-      {product.image ? (
-        <img src={product.image} alt={product.name} className="w-24 h-24 rounded-lg object-cover" loading="lazy" />
-      ) : (
-        <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center text-2xl">🛍️</div>
+                return (
+                  <div key={product.id} className="flex gap-4 p-4 rounded-xl bg-card border">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-24 h-24 rounded-lg object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center text-2xl">
+                        🛍️
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-medium text-foreground">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground">{partnerName}</p>
+                      <p className="text-accent font-bold mt-1">{Number(product.price).toFixed(2)} TND</p>
+                    </div>
+                    <div className="flex flex-col items-end justify-between">
+                      <button
+                        onClick={() => removeFromCart(product.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(product.id, quantity - 1)}
+                          className="p-1 rounded-md bg-muted hover:bg-border transition-colors"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-8 text-center font-medium">{quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(product.id, quantity + 1)}
+                          className="p-1 rounded-md bg-muted hover:bg-border transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Summary */}
+            <div className="p-6 rounded-xl bg-card border h-fit">
+              <h3 className="font-display text-lg font-bold mb-4">Récapitulatif</h3>
+              <div className="space-y-2 mb-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Sous-total</span>
+                  <span>{Number(total).toFixed(2)} TND</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Livraison</span>
+                  <span className="text-olive">Gratuite</span>
+                </div>
+              </div>
+              <div className="border-t pt-4 flex justify-between items-center mb-6">
+                <span className="font-bold text-lg">Total</span>
+                <span className="font-bold text-lg text-accent">{Number(total).toFixed(2)} TND</span>
+              </div>
+              <button
+                onClick={clearCart}
+                className="w-full mb-3 py-2 rounded-xl border text-sm text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
+              >
+                Vider le panier
+              </button>
+              <button
+                onClick={() => setStep('checkout')}
+                className="w-full py-3 rounded-xl gradient-mediterranean text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
+              >
+                Commander
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Checkout modal */}
+      {step === 'checkout' && (
+        <CheckoutModal
+          onClose={() => setStep('cart')}
+          onProceedToPayment={handleProceedToPayment}
+        />
       )}
-      <div className="flex-1">
-        <h3 className="font-medium text-foreground">{product.name}</h3>
-        <p className="text-sm text-muted-foreground">{partnerName}</p>
-        <p className="text-accent font-bold mt-1">{Number(product.price).toFixed(2)} TND</p>
-      </div>
-      <div className="flex flex-col items-end justify-between">
-        <button onClick={() => removeFromCart(product.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-          <Trash2 className="h-4 w-4" />
-        </button>
-        <div className="flex items-center gap-2">
-          <button onClick={() => updateQuantity(product.id, quantity - 1)} className="p-1 rounded-md bg-muted hover:bg-border transition-colors">
-            <Minus className="h-4 w-4" />
-          </button>
-          <span className="w-8 text-center font-medium">{quantity}</span>
-          <button onClick={() => updateQuantity(product.id, quantity + 1)} className="p-1 rounded-md bg-muted hover:bg-border transition-colors">
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-})}  
-             
-              
-          </div>
 
-          <div className="p-6 rounded-xl bg-card border h-fit">
-            <h3 className="font-display text-lg font-bold mb-4">Récapitulatif</h3>
-            <div className="space-y-2 mb-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Sous-total</span>
-                <span>{Number(total).toFixed(2)} TND</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Livraison</span>
-                <span className="text-olive">Gratuite</span>
-              </div>
-            </div>
-            <div className="border-t pt-4 flex justify-between items-center mb-6">
-              <span className="font-bold text-lg">Total</span>
-              <span className="font-bold text-lg text-accent">{Number(total).toFixed(2)} TND</span>
-            </div>
-            <button
-              onClick={clearCart}
-              className="w-full mb-3 py-2 rounded-xl border text-sm text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
-            >
-              Vider le panier
-            </button>
-            <button className="w-full py-3 rounded-xl gradient-mediterranean text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
-              Commander
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Payment modal */}
+      {step === 'payment' && (
+        <PaymentModal
+          total={Number(total)}
+          shippingAddress={shippingAddress}
+          onClose={handleClosePayment}
+          onConfirm={handleConfirmPayment}
+        />
+      )}
+    </>
   );
 };
 

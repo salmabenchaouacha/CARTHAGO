@@ -8,3 +8,4 @@ export const createOrder = (payload: {
   shipping_address: string;
   items: { product_id: number; quantity: number }[];
 }) => api.post("/orders/", payload).then(r => r.data);
+
