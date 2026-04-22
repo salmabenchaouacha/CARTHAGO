@@ -66,3 +66,21 @@ export type RegionList = {
   specialties: string[];
   activities: string[];
 };
+
+export type Booking = {
+  id: number;
+  booking_date: string;
+  guests: number;
+  status: "pending" | "confirmed" | "cancelled";
+  created_at: string;
+  service__id: number;
+  service__title: string;
+};
+
+export type Order = {
+  id: number;
+  total_amount: string;
+  status: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+  shipping_address: string;
+  created_at: string;
+};
