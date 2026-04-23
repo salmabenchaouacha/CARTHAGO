@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useReducer, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot,
@@ -10,7 +10,13 @@ import {
   Download,
   User,
   Loader2,
+  Undo2,
+  Redo2,
+  Pencil,
+  Check,
 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { api } from "@/services/api";
 import { regions } from "@/data/mockData";
 
@@ -43,7 +49,73 @@ interface ChatMessage {
 }
 
 /* ─────────────────────────────────────────────
-   PDF Download helper (no external library)
+   Region → GPS coordinates
+───────────────────────────────────────────── */
+const REGION_COORDS: Record<string, [number, number]> = {
+  Tunis: [36.8065, 10.1815],
+  Djerba: [33.8075, 10.845],
+  Tozeur: [33.9197, 8.1335],
+  Hammamet: [36.4, 10.6],
+  Sousse: [35.8256, 10.636],
+  Sfax: [34.7406, 10.7603],
+  Kairouan: [35.6781, 10.0966],
+  Tabarka: [36.954, 8.7576],
+  Mahdia: [35.5047, 11.0622],
+  Monastir: [35.7643, 10.8113],
+  Nabeul: [36.4564, 10.7356],
+  Bizerte: [37.2746, 9.8739],
+  Gafsa: [34.425, 8.7842],
+  Gabes: [33.8833, 10.1],
+  Medenine: [33.3549, 10.5055],
+  Tataouine: [32.9211, 10.4517],
+};
+
+/* ─────────────────────────────────────────────
+   Undo / Redo reducer
+───────────────────────────────────────────── */
+interface HistoryState {
+  past: Trip[];
+  present: Trip | null;
+  future: Trip[];
+}
+
+type HistoryAction =
+  | { type: "SET"; trip: Trip }
+  | { type: "UNDO" }
+  | { type: "REDO" }
+  | { type: "RESET" };
+
+function historyReducer(state: HistoryState, action: HistoryAction): HistoryState {
+  switch (action.type) {
+    case "SET":
+      return {
+        past: state.present ? [...state.past, state.present] : state.past,
+        present: action.trip,
+        future: [],
+      };
+    case "UNDO":
+      if (state.past.length === 0) return state;
+      return {
+        past: state.past.slice(0, -1),
+        present: state.past[state.past.length - 1],
+        future: state.present ? [state.present, ...state.future] : state.future,
+      };
+    case "REDO":
+      if (state.future.length === 0) return state;
+      return {
+        past: state.present ? [...state.past, state.present] : state.past,
+        present: state.future[0],
+        future: state.future.slice(1),
+      };
+    case "RESET":
+      return { past: [], present: null, future: [] };
+    default:
+      return state;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   HTML Download helper
 ───────────────────────────────────────────── */
 function downloadPlanAsHTML(trip: Trip) {
   const dayBlocks = trip.days
@@ -127,6 +199,77 @@ function downloadPlanAsHTML(trip: Trip) {
 }
 
 /* ─────────────────────────────────────────────
+   Inline editable field component
+───────────────────────────────────────────── */
+interface EditableFieldProps {
+  value: string;
+  className?: string;
+  onSave: (newValue: string) => void;
+}
+
+function EditableField({ value, className = "", onSave }: EditableFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (editing && ref.current) {
+      ref.current.focus();
+      const range = document.createRange();
+      range.selectNodeContents(ref.current);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+    }
+  }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const newVal = ref.current?.innerText.trim() ?? draft;
+    setDraft(newVal);
+    onSave(newVal);
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); commit(); }
+    if (e.key === "Escape") { setEditing(false); if (ref.current) ref.current.innerText = draft; }
+  };
+
+  return (
+    <span className="group relative inline-flex items-center gap-1">
+      <span
+        ref={ref}
+        contentEditable={editing}
+        suppressContentEditableWarning
+        onKeyDown={handleKey}
+        onBlur={commit}
+        className={`${className} ${editing
+          ? "outline-none bg-primary/10 rounded px-1 ring-1 ring-primary/30"
+          : "cursor-text"
+        }`}
+      >
+        {draft}
+      </span>
+      {!editing && (
+        <button
+          onClick={() => setEditing(true)}
+          className="opacity-0 group-hover:opacity-60 transition-opacity p-0.5 rounded hover:bg-muted"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      )}
+      {editing && (
+        <button
+          onMouseDown={(e) => { e.preventDefault(); commit(); }}
+          className="text-primary p-0.5"
+        >
+          <Check className="h-3 w-3" />
+        </button>
+      )}
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────────
    Main Component
 ───────────────────────────────────────────── */
 const AIPlannerPage = () => {
@@ -138,7 +281,20 @@ const AIPlannerPage = () => {
     regions: [] as string[],
   });
 
-  const [trip, setTrip] = useState<Trip | null>(null);
+  // Undo/redo history
+  const [historyState, dispatch] = useReducer(historyReducer, {
+    past: [],
+    present: null,
+    future: [],
+  });
+  const trip = historyState.present;
+
+  const setTrip = useCallback((t: Trip) => dispatch({ type: "SET", trip: t }), []);
+  const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
+  const redo = useCallback(() => dispatch({ type: "REDO" }), []);
+  const canUndo = historyState.past.length > 0;
+  const canRedo = historyState.future.length > 0;
+
   const [loading, setLoading] = useState(false);
 
   // Chat state
@@ -146,6 +302,17 @@ const AIPlannerPage = () => {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  /* Keyboard shortcuts: Ctrl/Cmd+Z  Ctrl/Cmd+Y */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (mod && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -170,22 +337,41 @@ const AIPlannerPage = () => {
   const toggleInterest = (i: string) =>
     setForm((f) => ({
       ...f,
-      interests: f.interests.includes(i)
-        ? f.interests.filter((x) => x !== i)
-        : [...f.interests, i],
+      interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i],
     }));
 
   const toggleRegion = (r: string) =>
     setForm((f) => ({
       ...f,
-      regions: f.regions.includes(r)
-        ? f.regions.filter((x) => x !== r)
-        : [...f.regions, r],
+      regions: f.regions.includes(r) ? f.regions.filter((x) => x !== r) : [...f.regions, r],
     }));
 
+  /* ── Helpers for inline editing ── */
+  const updateActivity = (dayIdx: number, actIdx: number, field: "title" | "description", value: string) => {
+    if (!trip) return;
+    const updated: Trip = structuredClone(trip);
+    updated.days[dayIdx].activities[actIdx][field] = value;
+    setTrip(updated);
+  };
+
+  const updateAccommodation = (dayIdx: number, value: string) => {
+    if (!trip) return;
+    const updated: Trip = structuredClone(trip);
+    updated.days[dayIdx].accommodation = value;
+    setTrip(updated);
+  };
+
+  const updateRegion = (dayIdx: number, value: string) => {
+    if (!trip) return;
+    const updated: Trip = structuredClone(trip);
+    updated.days[dayIdx].region = value;
+    setTrip(updated);
+  };
+
+  /* ── Generate ── */
   const generate = async () => {
     setLoading(true);
-    setTrip(null);
+    dispatch({ type: "RESET" });
     setChatHistory([]);
     try {
       const result = await api.generateTrip({
@@ -202,32 +388,22 @@ const AIPlannerPage = () => {
     setLoading(false);
   };
 
+  /* ── Chat ── */
   const sendChatMessage = async () => {
     if (!chatInput.trim() || !trip) return;
-
     const userMsg: ChatMessage = { role: "user", content: chatInput };
     const newHistory = [...chatHistory, userMsg];
     setChatHistory(newHistory);
     setChatInput("");
     setChatLoading(true);
-
     try {
       const result = await api.chatWithPlan({
         plan: trip,
         message: chatInput,
         history: newHistory.map((m) => ({ role: m.role, content: m.content })),
       });
-
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: result.reply,
-      };
-      setChatHistory((h) => [...h, assistantMsg]);
-
-      // If the agent returned an updated plan, apply it
-      if (result.updatedPlan) {
-        setTrip(result.updatedPlan);
-      }
+      setChatHistory((h) => [...h, { role: "assistant", content: result.reply }]);
+      if (result.updatedPlan) setTrip(result.updatedPlan);
     } catch (err) {
       console.error(err);
       setChatHistory((h) => [
@@ -235,17 +411,28 @@ const AIPlannerPage = () => {
         { role: "assistant", content: "Une erreur s'est produite. Veuillez réessayer." },
       ]);
     }
-
     setChatLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
   };
 
+  /* ── Map center: centroid of used regions ── */
+  const mapCenter: [number, number] = React.useMemo(() => {
+    if (!trip) return [33.8, 9.5];
+    const coords = trip.days
+      .map((d) => REGION_COORDS[d.region])
+      .filter(Boolean) as [number, number][];
+    if (coords.length === 0) return [33.8, 9.5];
+    const lat = coords.reduce((s, c) => s + c[0], 0) / coords.length;
+    const lng = coords.reduce((s, c) => s + c[1], 0) / coords.length;
+    return [lat, lng];
+  }, [trip]);
+
+  /* ─────────────────────────────────────────────
+     RENDER
+  ───────────────────────────────────────────── */
   return (
     <div className="py-16 min-h-screen">
       <div className="container mx-auto px-4">
@@ -269,9 +456,7 @@ const AIPlannerPage = () => {
           >
             {/* Duration */}
             <div>
-              <label className="block font-medium mb-2">
-                Durée ({form.duration} jours)
-              </label>
+              <label className="block font-medium mb-2">Durée ({form.duration} jours)</label>
               <input
                 type="range" min={1} max={14} value={form.duration}
                 onChange={(e) => setForm((f) => ({ ...f, duration: +e.target.value }))}
@@ -358,7 +543,25 @@ const AIPlannerPage = () => {
             <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
               <h2 className="text-2xl font-bold">Votre itinéraire ✨</h2>
               <div className="flex items-center gap-3">
-                {/* Download button */}
+                {/* Undo / Redo */}
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  title="Annuler (Ctrl+Z)"
+                  className="p-2 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-30 transition"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={redo}
+                  disabled={!canRedo}
+                  title="Rétablir (Ctrl+Y)"
+                  className="p-2 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-30 transition"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+
+                {/* Download */}
                 <button
                   onClick={() => downloadPlanAsHTML(trip)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card hover:bg-muted text-sm font-medium transition"
@@ -366,7 +569,8 @@ const AIPlannerPage = () => {
                   <Download className="h-4 w-4" />
                   Télécharger
                 </button>
-                {/* Regenerate button */}
+
+                {/* Regenerate */}
                 <button
                   onClick={generate}
                   className="flex items-center gap-2 text-sm text-primary"
@@ -377,38 +581,95 @@ const AIPlannerPage = () => {
               </div>
             </div>
 
+            {/* ── INTERACTIVE MAP ── */}
+            <div className="mb-8 rounded-2xl overflow-hidden border h-72 z-0">
+              <MapContainer
+                center={mapCenter}
+                zoom={6}
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {trip.days.map((day) => {
+                  const coords = REGION_COORDS[day.region];
+                  if (!coords) return null;
+                  return (
+                    <Marker key={`${day.day}-${day.region}`} position={coords}>
+                      <Popup>
+                        <strong>Jour {day.day}</strong> — {day.region}
+                        <br />
+                        <span className="text-xs text-gray-500">{day.weather.temp}°C · {day.weather.condition}</span>
+                        <br />
+                        <span className="text-xs">📍 {day.accommodation}</span>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
+            </div>
+
             {/* Day cards */}
             <div className="space-y-6">
-              {trip.days.map((day) => (
+              {trip.days.map((day, dayIdx) => (
                 <motion.div
                   key={day.day}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: day.day * 0.1 }}
+                  transition={{ delay: dayIdx * 0.08 }}
                   className="p-6 rounded-2xl border bg-card hover:shadow-xl transition"
                 >
+                  {/* Day header */}
                   <div className="flex justify-between mb-4">
-                    <h3 className="font-bold">Jour {day.day} — {day.region}</h3>
+                    <h3 className="font-bold flex items-center gap-1">
+                      Jour {day.day} —{" "}
+                      <EditableField
+                        value={day.region}
+                        className="font-bold"
+                        onSave={(v) => updateRegion(dayIdx, v)}
+                      />
+                    </h3>
                     <div className="text-sm flex items-center gap-2">
                       <Sun className="h-4 w-4 text-yellow-500" />
                       {day.weather.temp}°C
                     </div>
                   </div>
 
+                  {/* Activities */}
                   <div className="border-l-2 border-primary pl-4 space-y-4">
-                    {day.activities.map((a, i) => (
-                      <div key={i} className="flex gap-3">
-                        <span className="text-sm font-mono text-primary w-14">{a.time}</span>
-                        <div>
-                          <p className="font-medium">{a.title}</p>
-                          <p className="text-xs text-muted-foreground">{a.description}</p>
+                    {day.activities.map((a, actIdx) => (
+                      <div key={actIdx} className="flex gap-3">
+                        <span className="text-sm font-mono text-primary w-14 pt-0.5">{a.time}</span>
+                        <div className="flex-1 min-w-0">
+                          <EditableField
+                            value={a.title}
+                            className="font-medium text-sm"
+                            onSave={(v) => updateActivity(dayIdx, actIdx, "title", v)}
+                          />
+                          <div className="mt-0.5">
+                            <EditableField
+                              value={a.description}
+                              className="text-xs text-muted-foreground"
+                              onSave={(v) => updateActivity(dayIdx, actIdx, "description", v)}
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
 
+                  {/* Day footer */}
                   <div className="mt-4 pt-4 border-t flex justify-between text-sm">
-                    <span><MapPin className="inline h-4 w-4 mr-1" />{day.accommodation}</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="inline h-4 w-4 mr-1 flex-shrink-0" />
+                      <EditableField
+                        value={day.accommodation}
+                        className="text-sm"
+                        onSave={(v) => updateAccommodation(dayIdx, v)}
+                      />
+                    </span>
                     <span className="font-bold text-primary">~{day.estimatedCost} TND</span>
                   </div>
                 </motion.div>
@@ -445,7 +706,6 @@ const AIPlannerPage = () => {
                         Demandez-moi de modifier l'itinéraire, d'ajouter des activités,<br />
                         ou posez toute question sur votre voyage en Tunisie.
                       </p>
-                      {/* Suggestion chips */}
                       <div className="flex flex-wrap gap-2 justify-center mt-2">
                         {[
                           "Ajoute une journée à Djerba",
@@ -472,7 +732,6 @@ const AIPlannerPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                       >
-                        {/* Avatar */}
                         <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold
                           ${msg.role === "user"
                             ? "bg-gradient-to-br from-orange-400 to-pink-500"
@@ -480,8 +739,6 @@ const AIPlannerPage = () => {
                         >
                           {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                         </div>
-
-                        {/* Bubble */}
                         <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed
                           ${msg.role === "user"
                             ? "bg-primary text-white rounded-tr-sm"
@@ -493,7 +750,6 @@ const AIPlannerPage = () => {
                     ))}
                   </AnimatePresence>
 
-                  {/* Loading indicator */}
                   {chatLoading && (
                     <motion.div
                       initial={{ opacity: 0 }}

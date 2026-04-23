@@ -10,6 +10,14 @@ Trip Details:
 - Interests: {data.get('interests')}
 - Preferred Regions: {data.get('regions')}
 
+GEOGRAPHIC RULES:
+- Tunis → Carthage, Sidi Bou Said, Bardo, Medina only
+- Djerba → Houmt Souk, Midoun, Guellala only
+- Tozeur → Chott el-Jérid, Nefta, Ong Jemel only
+- Hammamet → Yasmine quarter, Medina, Nabeul coast only
+- Do NOT combine geographically distant regions in the same day
+- Maximum 2 regions per trip if duration < 5 days
+
 IMPORTANT:
 Return ONLY valid JSON.
 Do NOT add explanations.
@@ -64,6 +72,7 @@ Rules:
 - estimatedCost of affected day
 - totalCost of entire plan
 
+4) NEVER move a person between regions more than 200km apart on the same day
 ---
 
 Return format:
