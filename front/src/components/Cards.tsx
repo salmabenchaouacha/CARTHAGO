@@ -36,34 +36,54 @@ export const RegionCard = ({ region, index = 0 }: { region: RegionList; index?: 
   </motion.div>
 );
 
+
 export const PartnerCard = ({ partner, index = 0 }: { partner: Partner | PartnerList; index?: number }) => {
   const regionName = 'region__name' in partner ? partner.region__name : partner.region?.name;
   const fullName   = 'user__full_name' in partner ? partner.user__full_name : partner.user?.full_name;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1, duration: 0.4 }} viewport={{ once: true }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1, duration: 0.4 }}
+      viewport={{ once: true }}
+    >
+      {/* ✅ FIX ICI */}
       <Link to={`/partenaires/${partner.id}`} className="group block rounded-xl overflow-hidden bg-card hover-lift border">
+
         <div className="relative h-48 overflow-hidden bg-muted flex items-center justify-center">
           <span className="text-4xl text-muted-foreground">🏪</span>
+
           <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
             {ACTIVITY_LABELS[partner.activity_type] || partner.activity_type}
           </span>
+
           {partner.is_verified && (
-            <span className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full bg-teal-500/90 text-white text-xs font-medium">
+            <span className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full bg-teal-500 text-white text-xs font-medium">
               <BadgeCheck className="h-3 w-3" /> Vérifié
             </span>
           )}
         </div>
+
         <div className="p-4">
-          <h3 className="font-display text-lg font-semibold text-foreground mb-1">{partner.business_name}</h3>
-          <p className="text-muted-foreground text-sm line-clamp-2 mb-3">{partner.description}</p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3" />{regionName}
+          <h3 className="font-display text-lg font-semibold mb-1">
+            {partner.business_name}
+          </h3>
+
+          <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
+            {partner.description}
+          </p>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {regionName}
             </span>
-            <span className="text-xs text-muted-foreground">{fullName}</span>
+
+            <span>{fullName}</span>
           </div>
         </div>
+
       </Link>
     </motion.div>
   );
