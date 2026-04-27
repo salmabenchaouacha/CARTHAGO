@@ -18,7 +18,7 @@ const PartnerDetailPage = () => {
   return (
     <div className="container mx-auto px-4 py-10">
 
-      <Link to="/partners" className="flex items-center gap-2 mb-6">
+      <Link to="/partenaires" className="flex items-center gap-2 mb-6">
         <ArrowLeft /> Retour
       </Link>
 

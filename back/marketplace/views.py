@@ -77,44 +77,108 @@ def products_list(request):
             })
 
         return JsonResponse(data, safe=False)
+        # =========================
+    # 🔥 POST (FIX)
+    # =========================
+    if request.method == "POST":
+
+        if not request.user.is_authenticated:
+            return Response({"error": "Authentification requise"}, status=401)
+
+        partner = get_object_or_404(PartnerProfile, user=request.user)
+
+        payload = request.data
+
+        name = payload.get("name")
+        description = payload.get("description")
+        price = payload.get("price")
+        stock = payload.get("stock")
+
+        if not name or not price:
+            return Response(
+                {"error": "name et price sont obligatoires"},
+                status=400
+            )
+
+        product = Product.objects.create(
+            partner=partner,
+            name=name,
+            description=description,
+            price=price,
+            stock=stock or 0
+        )
+
+        return Response(
+            {
+                "message": "Produit créé avec succès",
+                "product": {
+                    "id": product.id,
+                    "name": product.name,
+                    "price": str(product.price),
+                },
+            },
+            status=201,
+        )
 
 # =========================
 # 🔹 PRODUCT DETAIL
 # =========================
-@api_view(["GET"])
+@api_view(["GET", "PATCH", "DELETE"])
 def product_detail(request, pk):
-    product = get_object_or_404(
-        Product.objects.select_related("partner", "category", "region"),
-        pk=pk,
-    )
 
-    data = {
-        "id": product.id,
-        "name": product.name,
-        "description": product.description,
-        "price": str(product.price),
-        "stock": product.stock,
-        "image": get_image(product),  # ✅ DIRECT URL
-        "is_active": product.is_active,
-        "created_at": product.created_at,
+    product = get_object_or_404(Product, pk=pk)
 
-        "partner": {
-            "id": product.partner.id,
-            "business_name": product.partner.business_name,
-        },
+    # =========================
+    # ✅ GET
+    # =========================
+    if request.method == "GET":
+        return Response({
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": str(product.price),
+            "stock": product.stock,
+            "image": get_image(product),
+        })
 
-        "category": {
-            "name": product.category.name if product.category else None,
-            "slug": product.category.slug if product.category else None,
-        },
+    # =========================
+    # 🔥 PATCH (UPDATE)
+    # =========================
+    if request.method == "PATCH":
 
-        "region": {
-            "name": product.region.name if product.region else None,
-            "slug": product.region.slug if product.region else None,
-        },
-    }
+        # 🔒 sécurité
+        if product.partner.user != request.user:
+            return Response({"error": "Non autorisé"}, status=403)
 
-    return JsonResponse(data)
+        data = request.data
+
+        product.name = data.get("name", product.name)
+        product.description = data.get("description", product.description)
+        product.price = data.get("price", product.price)
+        product.stock = data.get("stock", product.stock)
+
+        product.save()
+
+        return Response({
+            "message": "Produit modifié avec succès",
+            "product": {
+                "id": product.id,
+                "name": product.name,
+                "price": str(product.price),
+            }
+        })
+
+    # =========================
+    # 🔥 DELETE
+    # =========================
+    if request.method == "DELETE":
+
+        if product.partner.user != request.user:
+            return Response({"error": "Non autorisé"}, status=403)
+
+        product.delete()
+
+        return Response({"message": "Produit supprimé"})
 
 
 # =========================
