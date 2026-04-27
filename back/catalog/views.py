@@ -6,22 +6,26 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 
-from accounts.permissions import IsPartnerOrReadOnly
+from accounts.permissions import IsPartnerOrReadOnly, IsAdminRole
 from partners.models import PartnerProfile
 from locations.models import Region
 from .models import Service, ServiceCategory
 
-from accounts.permissions import IsAdminRole
 
 @api_view(["GET", "POST"])
 @permission_classes([IsPartnerOrReadOnly])
 def services_list(request):
+
+    # =========================
+    # ✅ GET : LIST SERVICES
+    # =========================
     if request.method == "GET":
         queryset = Service.objects.select_related("partner", "category", "region")
 
         region = request.GET.get("region")
         category = request.GET.get("category")
         q = request.GET.get("q")
+        mine = request.GET.get("mine")  # ✅ AJOUT
 
         if region:
             queryset = queryset.filter(region__slug__icontains=region)
@@ -36,6 +40,10 @@ def services_list(request):
                 Q(address__icontains=q) |
                 Q(partner__business_name__icontains=q)
             )
+
+        # ✅ FILTRE PARTENAIRE CONNECTÉ
+        if mine == "true" and request.user.is_authenticated:
+            queryset = queryset.filter(partner__user=request.user)
 
         data = list(
             queryset.values(
@@ -57,9 +65,16 @@ def services_list(request):
         )
         return JsonResponse(data, safe=False)
 
+    # =========================
+    # ✅ POST : CREATE SERVICE
+    # =========================
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentification requise."}, status=401)
+
     partner = get_object_or_404(PartnerProfile, user=request.user)
 
     payload = request.data
+
     category_id = payload.get("category_id")
     region_id = payload.get("region_id")
     title = payload.get("title")
@@ -69,6 +84,7 @@ def services_list(request):
     latitude = payload.get("latitude")
     longitude = payload.get("longitude")
 
+    # ✅ validation
     if not all([category_id, title, description, price, address]):
         return JsonResponse(
             {"error": "category_id, title, description, price et address sont obligatoires."},
@@ -104,14 +120,19 @@ def services_list(request):
     )
 
 
+# =========================
+# ✅ SERVICE DETAIL
+# =========================
 @api_view(["GET", "PATCH", "DELETE"])
 @permission_classes([IsPartnerOrReadOnly])
 def service_detail(request, pk):
+
     service = get_object_or_404(
         Service.objects.select_related("partner", "category", "region"),
         pk=pk,
     )
 
+    # -------- GET --------
     if request.method == "GET":
         data = {
             "id": service.id,
@@ -119,8 +140,8 @@ def service_detail(request, pk):
             "description": service.description,
             "price": str(service.price),
             "address": service.address,
-            "latitude": str(service.latitude) if service.latitude is not None else None,
-            "longitude": str(service.longitude) if service.longitude is not None else None,
+            "latitude": str(service.latitude) if service.latitude else None,
+            "longitude": str(service.longitude) if service.longitude else None,
             "is_active": service.is_active,
             "created_at": service.created_at,
             "partner": {
@@ -138,17 +159,16 @@ def service_detail(request, pk):
         }
         return JsonResponse(data)
 
+    # -------- SECURITY --------
     if service.partner.user != request.user:
         return Response(
             {"error": "Vous ne pouvez modifier ou supprimer que vos propres services."},
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    # -------- PATCH --------
     if request.method == "PATCH":
         payload = request.data
-
-        category_id = payload.get("category_id")
-        region_id = payload.get("region_id")
 
         if "title" in payload:
             service.title = payload.get("title")
@@ -165,11 +185,11 @@ def service_detail(request, pk):
         if "is_active" in payload:
             service.is_active = payload.get("is_active")
 
-        if category_id is not None:
-            service.category = get_object_or_404(ServiceCategory, pk=category_id)
+        if payload.get("category_id"):
+            service.category = get_object_or_404(ServiceCategory, pk=payload.get("category_id"))
 
-        if region_id is not None:
-            service.region = Region.objects.filter(pk=region_id).first()
+        if payload.get("region_id"):
+            service.region = Region.objects.filter(pk=payload.get("region_id")).first()
 
         service.save()
 
@@ -187,19 +207,14 @@ def service_detail(request, pk):
             status=status.HTTP_200_OK,
         )
 
+    # -------- DELETE --------
     service.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-def _to_bool(value):
-    if isinstance(value, bool):
-        return value
-    if str(value).lower() in ["true", "1", "yes", "oui"]:
-        return True
-    if str(value).lower() in ["false", "0", "no", "non"]:
-        return False
-    return None
 
-
+# =========================
+# ✅ ADMIN
+# =========================
 @api_view(["GET"])
 @permission_classes([IsAdminRole])
 def admin_services_list(request):
@@ -220,51 +235,34 @@ def admin_services_list(request):
             "region__name",
         )
     )
-    return Response(data, status=status.HTTP_200_OK)
+    return Response(data)
 
 
 @api_view(["PATCH"])
 @permission_classes([IsAdminRole])
 def admin_service_toggle(request, pk):
-    service = get_object_or_404(
-        Service.objects.select_related("partner", "category", "region"),
-        pk=pk,
-    )
+    service = get_object_or_404(Service, pk=pk)
 
-    if "is_active" not in request.data:
-        return Response(
-            {"error": "Le champ is_active est obligatoire."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    is_active = request.data.get("is_active")
 
-    is_active = _to_bool(request.data.get("is_active"))
     if is_active is None:
-        return Response(
-            {"error": "is_active doit être true ou false."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": "is_active est obligatoire."}, status=400)
 
-    service.is_active = is_active
-    service.save(update_fields=["is_active"])
+    service.is_active = str(is_active).lower() in ["true", "1", "yes"]
+    service.save()
 
-    return Response(
-        {
-            "message": "Statut du service mis à jour avec succès.",
-            "service": {
-                "id": service.id,
-                "title": service.title,
-                "is_active": service.is_active,
-            },
-        },
-        status=status.HTTP_200_OK,
-    )
-    
+    return Response({"message": "Statut mis à jour"})
+
+
 @api_view(["DELETE"])
 @permission_classes([IsAdminRole])
 def admin_service_delete(request, pk):
     service = get_object_or_404(Service, pk=pk)
     service.delete()
-    return Response(
-        {"message": "Service supprimé avec succès."},
-        status=status.HTTP_200_OK,
-    )
+    return Response({"message": "Service supprimé"})
+@api_view(["GET"])
+def categories_list(request):
+    from .models import ServiceCategory, ProductCategory
+    services_cats = list(ServiceCategory.objects.values("id", "name"))
+    products_cats = list(ProductCategory.objects.values("id", "name"))
+    return JsonResponse({ "services": services_cats, "products": products_cats })

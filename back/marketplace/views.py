@@ -27,7 +27,7 @@ def get_image(product):
 def products_list(request):
 
     # =========================
-    # GET
+    # ✅ GET PRODUCTS
     # =========================
     if request.method == "GET":
         queryset = Product.objects.select_related("partner", "category", "region")
@@ -35,6 +35,7 @@ def products_list(request):
         region = request.GET.get("region")
         category = request.GET.get("category")
         q = request.GET.get("q")
+        mine = request.GET.get("mine")  # ✅ AJOUT
 
         if region:
             queryset = queryset.filter(region__slug__icontains=region)
@@ -49,6 +50,10 @@ def products_list(request):
                 Q(partner__business_name__icontains=q)
             )
 
+        # ✅ FILTRE PRODUITS DU PARTENAIRE CONNECTÉ
+        if mine == "true" and request.user.is_authenticated:
+            queryset = queryset.filter(partner__user=request.user)
+
         data = []
 
         for p in queryset:
@@ -58,7 +63,7 @@ def products_list(request):
                 "description": p.description,
                 "price": str(p.price),
                 "stock": p.stock,
-                "image": get_image(p),  # ✅ DIRECT URL
+                "image": get_image(p),
                 "is_active": p.is_active,
                 "created_at": p.created_at,
 
@@ -72,56 +77,6 @@ def products_list(request):
             })
 
         return JsonResponse(data, safe=False)
-
-    # =========================
-    # CREATE PRODUCT
-    # =========================
-    partner = get_object_or_404(PartnerProfile, user=request.user)
-
-    payload = request.data
-
-    category_id = payload.get("category_id")
-    region_id = payload.get("region_id")
-    name = payload.get("name")
-    description = payload.get("description")
-    price = payload.get("price")
-    stock = payload.get("stock", 0)
-    image = payload.get("image")  # ✅ URL direct
-
-    if not all([category_id, name, description, price]):
-        return JsonResponse(
-            {"error": "category_id, name, description et price sont obligatoires."},
-            status=400,
-        )
-
-    category = get_object_or_404(ProductCategory, pk=category_id)
-    region = Region.objects.filter(pk=region_id).first() if region_id else None
-
-    product = Product.objects.create(
-        partner=partner,
-        category=category,
-        region=region,
-        name=name,
-        description=description,
-        price=price,
-        stock=stock,
-        image=image,  # ✅ URL direct
-    )
-
-    return JsonResponse(
-        {
-            "message": "Produit créé avec succès.",
-            "product": {
-                "id": product.id,
-                "name": product.name,
-                "price": str(product.price),
-                "stock": product.stock,
-                "image": get_image(product),
-            },
-        },
-        status=201,
-    )
-
 
 # =========================
 # 🔹 PRODUCT DETAIL

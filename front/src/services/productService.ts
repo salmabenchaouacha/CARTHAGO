@@ -16,3 +16,25 @@ export const getProductDetail = (id: number): Promise<Product> =>
     }
     return data;
   });
+export const getMyProducts = (): Promise<ProductList[]> =>
+  api.get("/products/", { params: { mine: true } }).then(r => r.data);
+
+export const createProduct = (payload: {
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  region_id?: number;
+}) => api.post("/products/", payload).then(r => r.data);
+
+export const updateProduct = (id: number, payload: Partial<{
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  is_active: boolean;
+}>) => api.patch(`/products/${id}/`, payload).then(r => r.data);
+
+export const deleteProduct = (id: number) =>
+  api.delete(`/products/${id}/`);

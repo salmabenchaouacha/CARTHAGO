@@ -84,3 +84,30 @@ export type Order = {
   shipping_address: string;
   created_at: string;
 };
+export type ServiceList = {
+  id: number;
+  title: string;
+  description: string;
+  price: string;
+  address: string;
+  is_active: boolean;
+  created_at: string;
+  partner__business_name: string;
+  category__name: string;
+  category__slug: string;
+  region__name: string;
+  region__slug: string;
+};
+
+export type PartnerDetail = {
+  id: number;
+  business_name: string;
+  activity_type: string;
+  description: string;
+  address: string;
+  is_verified: boolean;
+  latitude: string | null;
+  longitude: string | null;
+  user: { username: string; full_name: string };
+  region: { name: string; slug: string };
+};

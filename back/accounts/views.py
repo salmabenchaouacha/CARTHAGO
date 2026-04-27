@@ -70,23 +70,8 @@ class LoginView(TokenObtainPairView):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def logout(request):
-    refresh_token = request.data.get("refresh")
-
-    if not refresh_token:
-        return Response(
-            {"error": "Le refresh token est obligatoire."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    try:
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-        return Response({"message": "Déconnexion réussie."}, status=status.HTTP_200_OK)
-    except TokenError:
-        return Response(
-            {"error": "Refresh token invalide ou expiré."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    # ✅ pas besoin de blacklist
+    return Response({"message": "Déconnexion réussie."})
 
 
 @api_view(["GET"])
