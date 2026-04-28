@@ -111,3 +111,52 @@ export type PartnerDetail = {
   user: { username: string; full_name: string };
   region: { name: string; slug: string };
 };
+
+export type AdminUser = {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_staff: boolean;
+};
+
+export type AdminPartner = {
+  id: number;
+  business_name: string;
+  activity_type: string;
+  is_verified: boolean;
+  region__name: string;
+  user__username: string;
+  user__email: string;
+  user__full_name: string;
+};
+
+export type AdminProduct = {
+  id: number;
+  name: string;
+  price: string;
+  stock: number;
+  is_active: boolean;
+  partner__business_name: string;
+  category__name: string;
+  region__name: string;
+};
+
+export type AdminOrder = {
+  id: number;
+  total_amount: string;
+  status: string;
+  created_at: string;
+  user__full_name: string;
+  user__username: string;
+};
+
+export type AdminBooking = {
+  id: number;
+  booking_date: string;
+  status: string;
+  guests: number;
+  service__title: string;
+  user__full_name: string;
+};
