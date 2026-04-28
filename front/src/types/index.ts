@@ -28,20 +28,19 @@ export type Product = {
   region: { name: string; slug: string };
 };
 
-// Format liste (GET /partners/ avec .values())
-export type PartnerList = {
+export interface PartnerList {
   id: number;
   business_name: string;
   activity_type: string;
   description: string;
   address: string;
+  image?: string | null;   // ← ajouter
   is_verified: boolean;
-  latitude: string | null;
-  longitude: string | null;
-  region__name: string;
-  region__slug: string;
   user__full_name: string;
-};
+  user__username: string;
+  region__name: string | null;
+  region__slug: string | null;
+}
 
 // Format détail (GET /partners/:id/)
 export type Partner = {
@@ -143,20 +142,20 @@ export type AdminProduct = {
   region__name: string;
 };
 
-export type AdminOrder = {
-  id: number;
-  total_amount: string;
-  status: string;
-  created_at: string;
-  user__full_name: string;
-  user__username: string;
-};
 
-export type AdminBooking = {
+export interface AdminOrder {
   id: number;
-  booking_date: string;
-  status: string;
-  guests: number;
-  service__title: string;
   user__full_name: string;
-};
+  total_amount: string | number;
+  status: string;
+  created_at?: string;
+}
+
+export interface AdminBooking {
+  id: number;
+  user__full_name: string;
+  service__title: string;
+  status: string;
+  created_at?: string;
+  booking_date?: string;
+}

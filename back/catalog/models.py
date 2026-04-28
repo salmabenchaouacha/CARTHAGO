@@ -11,9 +11,9 @@ class ServiceCategory(models.Model):
 
 class Service(models.Model):
     partner = models.ForeignKey(
-        "partners.PartnerProfile",
-        on_delete=models.CASCADE,
-        related_name="services",
+    "partners.PartnerProfile",
+    on_delete=models.CASCADE,
+    related_name="catalog_services",  # ← au lieu de "services"
     )
     category = models.ForeignKey(
         "catalog.ServiceCategory",

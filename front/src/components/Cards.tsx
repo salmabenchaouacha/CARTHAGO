@@ -51,19 +51,29 @@ export const PartnerCard = ({ partner, index = 0 }: { partner: Partner | Partner
       {/* ✅ FIX ICI */}
       <Link to={`/partenaires/${partner.id}`} className="group block rounded-xl overflow-hidden bg-card hover-lift border">
 
-        <div className="relative h-48 overflow-hidden bg-muted flex items-center justify-center">
-          <span className="text-4xl text-muted-foreground">🏪</span>
+       <div className="relative h-48 overflow-hidden bg-muted">
+  {'image' in partner && partner.image ? (
+    <img
+      src={partner.image}
+      alt={partner.business_name}
+      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center">
+      <span className="text-4xl text-muted-foreground">🏪</span>
+    </div>
+  )}
 
-          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
-            {ACTIVITY_LABELS[partner.activity_type] || partner.activity_type}
-          </span>
+  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+    {ACTIVITY_LABELS[partner.activity_type] || partner.activity_type}
+  </span>
 
-          {partner.is_verified && (
-            <span className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full bg-teal-500 text-white text-xs font-medium">
-              <BadgeCheck className="h-3 w-3" /> Vérifié
-            </span>
-          )}
-        </div>
+  {partner.is_verified && (
+    <span className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full bg-teal-500 text-white text-xs font-medium">
+      <BadgeCheck className="h-3 w-3" /> Vérifié
+    </span>
+  )}
+</div>
 
         <div className="p-4">
           <h3 className="font-display text-lg font-semibold mb-1">

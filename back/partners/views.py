@@ -30,24 +30,25 @@ def partners_list(request):
         )
 
     data = list(
-        queryset.values(
-            "id",
-            "business_name",
-            "activity_type",
-            "description",
-            "address",
-            "latitude",
-            "longitude",
-            "is_verified",
-            "created_at",
-            "user__username",
-            "user__full_name",
-            "region__name",
-            "region__slug",
-        )
+    queryset.values(
+        "id",
+        "business_name",
+        "activity_type",
+        "description",
+        "address",
+        "latitude",
+        "longitude",
+        "is_verified",
+        "created_at",
+        "image",          # ← ajouter cette ligne
+        "user__username",
+        "user__full_name",
+        "region__name",
+        "region__slug",
     )
+)
+    
     return JsonResponse(data, safe=False)
-
 
 def partner_detail(request, pk):
     partner = get_object_or_404(
@@ -55,17 +56,23 @@ def partner_detail(request, pk):
         pk=pk,
     )
     data = {
-        "id": partner.id,
+        "id":            partner.id,
         "business_name": partner.business_name,
         "activity_type": partner.activity_type,
-        "description": partner.description,
-        "address": partner.address,
-        "latitude": str(partner.latitude) if partner.latitude is not None else None,
-        "longitude": str(partner.longitude) if partner.longitude is not None else None,
-        "is_verified": partner.is_verified,
-        "created_at": partner.created_at,
+        "description":   partner.description,
+        "address":       partner.address,
+        "latitude":      str(partner.latitude)  if partner.latitude  is not None else None,
+        "longitude":     str(partner.longitude) if partner.longitude is not None else None,
+        "is_verified":   partner.is_verified,
+        "created_at":    partner.created_at,
+        # ── Nouveaux champs ──
+        "image":         partner.image,
+        "phone":         partner.phone,
+        "hours":         partner.hours,
+        "services":      partner.services, 
+        "price_range": partner.price_range,# liste Python → JSON array
         "user": {
-            "username": partner.user.username,
+            "username":  partner.user.username,
             "full_name": partner.user.full_name,
         },
         "region": {
@@ -74,15 +81,6 @@ def partner_detail(request, pk):
         },
     }
     return JsonResponse(data)
-def _to_bool(value):
-    if isinstance(value, bool):
-        return value
-    if str(value).lower() in ["true", "1", "yes", "oui"]:
-        return True
-    if str(value).lower() in ["false", "0", "no", "non"]:
-        return False
-    return None
-
 
 @api_view(["GET"])
 @permission_classes([IsAdminRole])

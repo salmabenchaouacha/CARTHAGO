@@ -26,9 +26,12 @@ import ProtectedRoute from "@/routes/ProtectedRoute";
 
 import UserDashboard, { UserProfile, UserFavorites, UserReservations, UserOrders } from "@/pages/dashboards/UserDashboard";
 import PartnerDashboard, { PartnerProfile, PartnerServices, PartnerProducts } from "@/pages/dashboards/PartnerDashboard";
-import AdminDashboard, { AdminUsers, AdminPartners, AdminProducts } from "@/pages/dashboards/AdminDashboard";
 
-
+import AdminDashboard, {
+  AdminUsers, AdminPartners, AdminProducts,
+  AdminOrders,   // ← nouveau
+  AdminBookings, // ← nouveau
+} from '@/pages/dashboards/AdminDashboard';
 import { UserDashboardLayout, PartnerDashboardLayout, AdminDashboardLayout } from "@/layouts/DashboardLayout";
 
 const queryClient = new QueryClient();
@@ -91,6 +94,8 @@ const App = () => {
               <Route path="/admin/utilisateurs" element={<AdminUsers />} />
               <Route path="/admin/partenaires" element={<AdminPartners />} />
               <Route path="/admin/produits" element={<AdminProducts />} />
+              <Route path="/admin/commandes"    element={<AdminOrders />}   />
+              <Route path="/admin/reservations" element={<AdminBookings />} />
             </Route>
               
 

@@ -1,11 +1,18 @@
 import api from "./api";
 import { type PartnerList, type Partner } from "@/types";
 
-export const getPartners = (params?: {
+
+
+export const getPartners = async (params?: {
   region?: string;
   activity_type?: string;
   q?: string;
-}): Promise<PartnerList[]> => api.get("/partners/", { params }).then(r => r.data);
+}) => {
+  const res = await api.get('/partners/', { params });
+  return res.data;
+};
 
-export const getPartnerDetail = (id: number): Promise<Partner> =>
-  api.get(`/partners/${id}/`).then(r => r.data);
+export const getPartnerDetail = async (id: number) => {
+  const res = await api.get(`/partners/${id}/`);
+  return res.data;
+};

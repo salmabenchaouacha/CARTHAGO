@@ -123,3 +123,21 @@ def admin_review_delete(request, pk):
         {"message": "Avis supprimé avec succès."},
         status=status.HTTP_200_OK,
     )
+@api_view(["GET"])
+def partner_reviews(request, partner_id):
+    """Reviews publiques d'un partenaire (via service lié)"""
+    reviews = Review.objects.select_related("user", "service").filter(
+        service__partner_id=partner_id  # adapte selon ton modèle
+    ).order_by("-created_at")
+
+    data = [
+        {
+            "id": r.id,
+            "user_name": r.user.get_full_name() or r.user.username,
+            "rating": r.rating,
+            "comment": r.comment,
+            "date": r.created_at.strftime("%d/%m/%Y"),
+        }
+        for r in reviews
+    ]
+    return JsonResponse(data, safe=False)

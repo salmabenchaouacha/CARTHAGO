@@ -78,6 +78,8 @@ export const AdminDashboardLayout = () => (
       { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: <User className="h-4 w-4" /> },
       { to: '/admin/partenaires', label: 'Partenaires', icon: <Heart className="h-4 w-4" /> },
       { to: '/admin/produits', label: 'Produits', icon: <ShoppingBag className="h-4 w-4" /> },
+      { to: '/admin/commandes', label: 'Commandes', icon: <Calendar className="h-4 w-4" /> },
+      { to: '/admin/reservations', label: 'Réservations', icon: <Calendar className="h-4 w-4" /> },
     ]}
   />
 );
