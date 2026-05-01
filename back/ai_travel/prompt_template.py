@@ -1,203 +1,152 @@
-def build_prompt(data, sponsors=None):
-    duration = data.get('duration')
-    travel_type = data.get('travel_type')
-    interests = data.get('interests')
-    regions = data.get('regions')
-    traveler_profile = data.get('traveler_profile', 'couple')
-    budget_level = data.get('budget_level', 'mid-range')
-    language = data.get('language', 'fr')
-    season = data.get('season', 'summer')
-    special_requests = data.get('special_requests', '')
-
-    # ── REGION RULE ─────────────────────────────────────────
-    if regions and len(regions) > 0:
-        regions_list = regions if isinstance(regions, list) else [regions]
-        regions_str = ", ".join(regions_list)
-
-        if len(regions_list) == 1:
-            region_rule = f"""
-REGION ENFORCEMENT:
-ALL {duration} days MUST be in [{regions_str}] only.
-No other region allowed.
-"""
-        else:
-            region_rule = f"""
-REGION ENFORCEMENT:
-Distribute {duration} days across ONLY: [{regions_str}]
-Each day = ONE region only (no mixing).
-"""
-    else:
-        region_rule = f"""
-REGION SELECTION:
-Choose best regions based on interests and season.
-Max 2 regions if duration < 5.
-"""
-
-    # ── CONTEXTS ────────────────────────────────────────────
-    profile_context = {
-        'solo': "Solo traveler → social & safe.",
-        'couple': "Couple → romantic & intimate.",
-        'family': "Family → safe & child-friendly.",
-        'group': "Group → shared experiences.",
-        'business': "Business → efficient & central.",
-    }.get(traveler_profile, '')
-
-    budget_context = {
-        'budget': "Low budget.",
-        'mid-range': "Mid-range comfort.",
-        'luxury': "Luxury experience.",
-    }.get(budget_level, '')
-
-    season_context = {
-        'spring': "Spring activities.",
-        'summer': "Avoid heat, beach evenings.",
-        'autumn': "Balanced season.",
-        'winter': "Indoor + desert.",
-    }.get(season, '')
-
-    # ── SIZE CONTROL (CRITICAL) ─────────────────────────────
-    size_rules = f"""
-OUTPUT SIZE RULES (STRICT):
-- EXACTLY {duration} days
-- MAX 3 activities/day
-- EXACTLY 2 shopping items/day
-
-TEXT LIMITS:
-- narrative: max 2 short sentences
-- description: max 12 words
-- insider_tip: max 10 words
-- accommodation desc: max 15 words
-- why_buy: max 12 words
-
-STYLE:
-- concise, useful, non-repetitive
-- no long paragraphs
-"""
-
-    # ── PROMPT ─────────────────────────────────────────────
+def build_prompt(data):
     return f"""
-You are a Tunisia travel planner generating STRICT JSON.
+You are a luxury travel planner specialized in Tunisia.
 
-{size_rules}
+Create a detailed day-by-day travel itinerary.
 
-USER:
-- Duration: {duration}
-- Interests: {interests}
-- Profile: {traveler_profile} ({profile_context})
-- Budget: {budget_level} ({budget_context})
-- Season: {season} ({season_context})
-{region_rule}
+Trip Details:
+- Duration: {data.get('duration')}
+- Travel Type: {data.get('travel_type')}
+- Interests: {data.get('interests')}
+- Preferred Regions: {data.get('regions')}
 
-RULES:
-- Always valid JSON
-- No markdown
-- No explanations
-- Short content only
-- Realistic places only
+GEOGRAPHIC RULES:
+- Tunis → Carthage, Sidi Bou Said, Bardo, Medina only
+- Djerba → Houmt Souk, Midoun, Guellala only
+- Tozeur → Chott el-Jérid, Nefta, Ong Jemel only
+- Hammamet → Yasmine quarter, Medina, Nabeul coast only
+- Sousse -> Port El Kantaoui, Medina (Ribat), L'Aromate Restaurent Town
+- Do NOT combine geographically distant regions in the same day
+- Maximum 2 regions per trip if duration < 5 days
+- The activities of each day should make sense with each other and with the region of the day.
+- The estimated cost of each day should make total sense with the activities and accommodation of the day.
+- the total cost should be the sum of the days cost.
+- If user doesn't specify regions, choose them based on their interests and the duration of the trip.
 
-JSON STRUCTURE:
+CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation.
+
+Use exactly this structure:
 
 {{
-  "trip_summary": {{
-    "title": "...",
-    "tagline": "...",
-    "traveler_profile": "{traveler_profile}",
-    "budget_level": "{budget_level}",
-    "season": "{season}",
-    "regions": [],
-    "total_days": {duration}
-  }},
   "days": [
     {{
       "day": 1,
-      "region": "...",
-      "daily_narrative": "...",
+      "region": "Tunis",
       "weather": {{
-        "temp": 30,
-        "condition": "sunny",
-        "advice": "..."
+        "temp": 25,
+        "condition": "Ensoleillé"
       }},
       "activities": [
         {{
           "time": "09:00",
-          "title": "...",
-          "description": "Short description.",
-          "insider_tip": "Short tip.",
-          "duration_minutes": 90,
-          "cost_per_person": 10,
-          "category": "culture",
-          "sponsor": null
+          "title": "Visite de la Médina",
+          "description": "Exploration de la vieille ville historique"
         }}
       ],
-      "shopping_recommendations": [
-        {{
-          "name": "...",
-          "shop": "...",
-          "address": "...",
-          "price_range": "...",
-          "why_buy": "Short reason.",
-          "availability": "both",
-          "sponsored": false
-        }}
-      ],
-      "accommodation": {{
-        "name": "...",
-        "type": "guest_house",
-        "description": "Short description.",
-        "unique_character": "Short highlight.",
-        "is_sponsor": false,
-        "price_per_night": 120,
-        "address": "...",
-        "booking_tip": "..."
-      }},
-      "estimatedCost": 200
+      "accommodation": "Hôtel Dar El Jeld",
+      "estimatedCost": 120
     }}
   ],
-  "totalCost": 600
+  "totalCost": 500
 }}
 """
+
 
 def build_chat_prompt(plan, message):
     import json
 
     return f"""
-You are a STRICT JSON travel plan editor.
-
-IMPORTANT RULES:
-- Return ONLY valid JSON
-- NEVER break the structure
-- ALWAYS keep same schema
-- ALWAYS return FULL objects when updating
-
-CONSTRAINTS:
-- MAX 3 activities per day
-- EXACTLY 2 shopping_recommendations per day
-- Keep all required fields
-- No new fields
-
-IF USER MESSAGE IS NOT CLEAR:
-→ action = "message"
-
-IF MODIFYING A DAY:
-→ return FULL "new_day" object
+You are a travel itinerary engine for Tunisia.
 
 CURRENT PLAN:
-{json.dumps(plan, ensure_ascii=False)}
+{json.dumps(plan, ensure_ascii=False, indent=2)}
 
-USER MESSAGE:
-{message}
+USER REQUEST: {message}
 
-OUTPUT FORMAT:
+DECISION LOGIC:
+1. Use 'add_day' if the user mentions a NEW location not in the CURRENT PLAN, or explicitly says "add a day", "add [City]", or "extension".
+2. Use 'update_day' ONLY if the user references an EXISTING day number (e.g., "Change day 2") or wants to modify a specific activity already listed.
+3. If the user says "Add [City]" without specifying a day number, it is ALWAYS 'add_day'. The new day number must be CURRENT PLAN max day + 1.
 
+RULES:
+- Return ONLY a raw JSON object. No markdown. No backticks. No explanation.
+- Always recompute new_total_cost.
+- Never place regions more than 200km apart on the same day.
+- The activities of each day should make sense with each other and with the region of the day.
+- The estimated cost of each day should make total sense with the activities and accommodation of the day.
+- The cost of a day should be the sum of the accommodation cost and the activities cost.
+- the total cost should be the sum of the days cost.
+
+CHOOSE EXACTLY ONE action and return its JSON:
+
+--- ACTION: update_day ---
+Use when user modifies, adds activities to, or changes ANY detail of an existing day.
 {{
-  "action": "message" | "update_day" | "add_day" | "remove_day",
-  "reply": "short answer",
-
-  "day": 1,
-  "new_day": {{ FULL DAY OBJECT }},
-  "new_days": [{{ FULL DAY OBJECT }}],
-  "new_total_cost": 0
+  "action": "update_day",
+  "day": <day_number>,
+  "new_day": {{
+    "day": <day_number>,
+    "region": "...",
+    "weather": {{"temp": 26, "condition": "..."}},
+    "activities": [{{"time": "09:00", "title": "...", "description": "..."}}],
+    "accommodation": "...",
+    "estimatedCost": 180
+  }},
+  "new_total_cost": 720
 }}
 
-NO TEXT OUTSIDE JSON.
+--- ACTION: add_day (SINGLE day) ---
+Use when user adds ONE day.
+{{
+  "action": "add_day",
+  "new_day": {{
+    "day": <next_day_number>,
+    "region": "...",
+    "weather": {{"temp": 25, "condition": "..."}},
+    "activities": [{{"time": "09:00", "title": "...", "description": "..."}}],
+    "accommodation": "...",
+    "estimatedCost": 150
+  }},
+  "new_total_cost": 900
+}}
+
+--- ACTION: add_day (MULTIPLE days) ---
+Use when user adds MORE THAN ONE day. Put all new days in new_days array.
+{{
+  "action": "add_day",
+  "new_days": [
+    {{
+      "day": <next_day_number>,
+      "region": "Sousse",
+      "weather": {{"temp": 27, "condition": "Ensoleillé"}},
+      "activities": [{{"time": "09:00", "title": "...", "description": "..."}}],
+      "accommodation": "...",
+      "estimatedCost": 160
+    }},
+    {{
+      "day": <next_day_number_plus_1>,
+      "region": "Kairouan",
+      "weather": {{"temp": 28, "condition": "Ensoleillé"}},
+      "activities": [{{"time": "09:00", "title": "...", "description": "..."}}],
+      "accommodation": "...",
+      "estimatedCost": 130
+    }}
+  ],
+  "new_total_cost": 1050
+}}
+
+--- ACTION: remove_day ---
+Use when user removes/deletes a day.
+{{
+  "action": "remove_day",
+  "day": <day_number>,
+  "new_total_cost": 650
+}}
+
+--- ACTION: message ---
+Use ONLY when no plan change is needed (e.g. a question).
+{{
+  "action": "message",
+  "reply": "..."
+}}
 """
