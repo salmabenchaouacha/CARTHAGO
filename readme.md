@@ -1,4 +1,4 @@
-<img width="600" height="250" alt="logo5" src="https://github.com/user-attachments/assets/08c22ffe-4453-42c2-b3a9-68d86900c96a" />
+<img width="400" height="150" alt="logo5" src="https://github.com/user-attachments/assets/08c22ffe-4453-42c2-b3a9-68d86900c96a" />
 
 # 🌍 Carthago — AI Travel Planner & Services Marketplace
 
